@@ -5,6 +5,9 @@
 
 ---
 
+> [!NOTE]
+> **Production Status & Intellectual Property Notice:**  
+> This repository is an **architectural case study and systems specification** derived from a proprietary, active production system (serving 8,000+ monthly user sessions across global edge infrastructure). In accordance with commercial confidentiality agreements and anti-tamper security practices, live memory offsets, internal game mappings, private Cloudflare routing tokens, and core binaries are strictly omitted.
 ## Executive Summary
 
 When distributing client performance software in competitive environments, on-disk libraries (`.dll`) present severe security hazards: arbitrary code injection, binary repackaging with malware, and DLL search-order hijacking. Standard OS loaders (`LoadLibrary`) exacerbate this by exposing the module directly in the process environment block (`PEB`).
