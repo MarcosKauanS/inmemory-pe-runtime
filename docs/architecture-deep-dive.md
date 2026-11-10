@@ -225,7 +225,13 @@ sequenceDiagram
 ### The Hidden Trap
 During initial development of the in-memory engine, the manual mapper succeeded in relocating the PE payload and invoking the entry point. However, within 15 to 45 seconds of runtime in high-load production environments, the target host game process suffered an intermittent, catastrophic freeze with zero crash log generated.
 
-### Diagnostic Forensic Investigation
+### Diagnostic Forensic Investigation: In-Process Instrumentation
+Attaching a heavy external disassembler or interactive debugger was neither viable nor desirable: external debuggers halt thread execution (destroying runtime concurrency timing and masking the race condition), and the engine's active anti-tamper tripwires actively resist attached debuggers.
+
+Instead, the investigation leveraged a **custom in-process diagnostic harness compiled directly inside the payload DLL**:
+* **In-Memory Variable Inspection:** The runtime embedded an isolated diagnostic state machine that polled internal pointer tables, thread execution contexts, and target variable offsets directly within the host address space.
+* **The Interception Race Uncovered:** The host JVM utilized a global ClassLoader mutex during client world-loading cycles. Concurrently, the engine attempted to resolve internal memory field descriptors (leftClickCounter / ield_71429_W) from a secondary background thread spawned via NtCreateThreadStealth.
+* **The Root Cause:** Because the background FindClass / GetFieldID lookup triggered an implicit class-resolution attempt while the primary game render thread held the JVM class dictionary mutex, both threads entered a classic **AB-BA circular lock acquisition deadlock**.
 Attaching an external debugger was impossible due to the engine's built-in anti-debugging tripwires. By engineering an isolated diagnostic build emitting thread states via an asynchronous named pipe (`PipeLog`), the root cause was uncovered:
 * **The Interception Race:** The injected engine hooked JVM class loading routines via native JVMTI capabilities.
 * **The Deadlock Scenario:** The host JVM utilized a global ClassLoader lock during client world-loading cycles. Concurrently, the engine attempted to resolve Minecraft internal field IDs (`leftClickCounter` / `field_71429_W`) from a secondary background thread spawned via `NtCreateThreadStealth`.
