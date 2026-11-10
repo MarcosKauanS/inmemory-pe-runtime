@@ -6,6 +6,9 @@
 
 ---
 
+> [!NOTE]
+> **Production Context & Sanitization Notice:**  
+> This whitepaper documents systems architecture deployed in live production (servicing 8,000+ monthly requests across global edge infrastructure). In accordance with commercial non-disclosure agreements and anti-tamper security practices, target memory offsets, game structures, private Cloudflare routing keys, and core engine binaries are strictly omitted.
 ## 1. Executive Summary & Problem Context
 
 In competitive client-server environments, distributing user-mode performance utilities introduces severe software security risks:
