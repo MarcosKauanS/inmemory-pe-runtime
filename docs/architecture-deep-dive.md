@@ -1,4 +1,4 @@
-﻿# In-Memory PE Runtime & Integrity Protection Engine
+# In-Memory PE Runtime & Integrity Protection Engine
 ### Architecture Case Study: Defensive Anti-Tamper & Zero-Disk Execution Pipeline
 **Language:** Modern C++ (C++20) / Win32 / x86 & x64 Assembly  
 **Target Platform:** Windows Internals (User-Mode Execution Engine)  
