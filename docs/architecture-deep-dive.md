@@ -272,10 +272,16 @@ The distribution lifecycle uses an ultra-low-latency edge topology on Cloudflare
 
 A core trait of senior systems engineering is acknowledging intentional technical debt and architectural limits in hindsight:
 
-1. **Page Protection Transitioning (RWX Mitigation):**
+1. **Page Protection Transitioning (RWX & W^X Enforcement):**
    * *Current State:* The target buffer is allocated as `PAGE_EXECUTE_READWRITE` for both mapping sections and relocation writes.
    * *V2 Improvement:* Transition to strict multi-pass virtual memory protection (`PAGE_READWRITE` during section copy and IAT resolution, transitioning only `.text` to `PAGE_EXECUTE_READ` and data sections to `PAGE_READWRITE` via `VirtualProtectEx`). This eliminates heuristic memory scanner flags targeting executable writable pages (W^X violation).
-2. **Transitioning from Named Pipes to Shared Memory IPC:**
+2. **PE Header Scrubbing & Ephemeral Memory Sanitization:**
+   * *Current State:* Section headers and DOS/NT structures remain in memory for post-mapping diagnostics.
+   * *V2 Improvement:* Overwrite DOS/NT header memory pages with cryptographically random garbage or zero-fill immediately after relocation processing (`SecureZeroMemory(pTargetBase, pOldOptHeader->SizeOfHeaders)`), neutralizing in-memory signature scanners (*PE-sieve*, *Moneta*) seeking unbacked `MZ` (0x5A4D) magic bytes.
+3. **VAD Tree Backing & Module Stomping (Anti-Unbacked Memory Scanners):**
+   * *Current State:* Remote allocation creates private, unbacked virtual memory regions (`MEM_PRIVATE`).
+   * *V2 Improvement:* Implement Module Overloading / Module Stomping by loading a benign, signed system DLL and overwriting its mapped image space. This ensures the execution thread's call stack resolves to a valid, signed image entry in the kernel's Virtual Address Descriptor (VAD) tree.
+4. **Transitioning from Named Pipes to Shared Memory IPC:**
    * *Current State:* Asynchronous diagnostics communicate via Win32 Named Pipes.
    * *V2 Improvement:* Replace pipe overhead with an encrypted Ring Buffer on Shared Memory (`CreateFileMapping` / `MapViewOfFile`), lowering diagnostic logging overhead from ~20µs to sub-microsecond cache access.
 
@@ -283,4 +289,4 @@ A core trait of senior systems engineering is acknowledging intentional technica
 
 ## 10. Ethical Scope & Responsible Disclosure
 
-This architectural implementation was designed strictly for **legitimate software performance optimization** (eliminating input hit-delay discrepancies as authorized by server administration) and **anti-tamper IP preservation**. The techniques documented herein showcase how modern systems software developers safeguard proprietary user-mode software against unauthorized reverse engineering, binary cracking, and malicious payload hijacking.
+This architectural implementation was designed strictly for **high-frequency input event synchronization and performance optimization** and **anti-tamper IP preservation**. The techniques documented herein showcase how modern systems software developers safeguard proprietary user-mode software against unauthorized reverse engineering, binary cracking, and malicious payload hijacking.
