@@ -232,13 +232,10 @@ During initial development of the in-memory engine, the manual mapper succeeded 
 Attaching a heavy external disassembler or interactive debugger was neither viable nor desirable: external debuggers halt thread execution (destroying runtime concurrency timing and masking the race condition), and the engine's active anti-tamper tripwires actively resist attached debuggers.
 
 Instead, the investigation leveraged a **custom in-process diagnostic harness compiled directly inside the payload DLL**:
-* **In-Memory Variable Inspection:** The runtime embedded an isolated diagnostic state machine that polled internal pointer tables, thread execution contexts, and target variable offsets directly within the host address space.
-* **The Interception Race Uncovered:** The host JVM utilized a global ClassLoader mutex during client world-loading cycles. Concurrently, the engine attempted to resolve internal memory field descriptors (leftClickCounter / ield_71429_W) from a secondary background thread spawned via NtCreateThreadStealth.
-* **The Root Cause:** Because the background FindClass / GetFieldID lookup triggered an implicit class-resolution attempt while the primary game render thread held the JVM class dictionary mutex, both threads entered a classic **AB-BA circular lock acquisition deadlock**.
-Attaching an external debugger was impossible due to the engine's built-in anti-debugging tripwires. By engineering an isolated diagnostic build emitting thread states via an asynchronous named pipe (`PipeLog`), the root cause was uncovered:
-* **The Interception Race:** The injected engine hooked JVM class loading routines via native JVMTI capabilities.
-* **The Deadlock Scenario:** The host JVM utilized a global ClassLoader lock during client world-loading cycles. Concurrently, the engine attempted to resolve Minecraft internal field IDs (`leftClickCounter` / `field_71429_W`) from a secondary background thread spawned via `NtCreateThreadStealth`.
-* Because `FindClass` triggered an implicit class load while the main render thread held the JVM class dictionary mutex, both threads entered a classic AB-BA circular acquisition deadlock.
+* **In-Memory Telemetry Inspection:** The runtime embedded an isolated diagnostic state machine that polled internal pointer tables, thread execution contexts, and target variable offsets directly within the host address space.
+* **Isolated Asynchronous Pipe Logging:** An internal diagnostic build emitted thread scheduling states and lock counters through an asynchronous named pipe (`PipeLog`), preserving sub-millisecond execution timing without perturbing thread affinity.
+* **The Interception Race Uncovered:** The injected engine interfaced with JVM execution contexts via native JVMTI capabilities. During host level-load cycles, the host JVM held a global `ClassLoader` dictionary mutex. Concurrently, the engine attempted to resolve target input state descriptors from an asynchronous background thread spawned via `NtCreateThreadStealth`.
+* **The Root Cause:** Because the background `FindClass` / `GetFieldID` resolution triggered an implicit class-resolution attempt while the primary game render thread held the JVM class dictionary mutex, both threads entered a classic **AB-BA circular lock acquisition deadlock**.
 
 ### The Architectural Resolution
 1. **Thread Synchronization Decoupling:** Replaced direct background thread querying with an asynchronous event-driven lifecycle anchored to the primary JVM render loop.
