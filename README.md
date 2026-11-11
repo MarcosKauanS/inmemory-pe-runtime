@@ -7,7 +7,7 @@
 
 > [!NOTE]
 > **Production Status & Intellectual Property Notice:**  
-> This repository is an **architectural case study and systems specification** derived from a proprietary, active production system (serving 8,000+ monthly user sessions across global edge infrastructure). In accordance with commercial confidentiality agreements and anti-tamper security practices, live memory offsets, internal game mappings, private Cloudflare routing tokens, and core binaries are strictly omitted.
+> This repository is an **architectural case study and systems specification** derived from a proprietary, active production system (serving 7,500+ to 8,000+ monthly user sessions across global edge infrastructure). In accordance with commercial confidentiality agreements and anti-tamper security practices, live memory offsets, internal game mappings, private Cloudflare routing tokens, and core binaries are strictly omitted.
 ## Executive Summary
 
 When distributing client performance software in competitive environments, on-disk libraries (`.dll`) present severe security hazards: arbitrary code injection, binary repackaging with malware, and DLL search-order hijacking. Standard OS loaders (`LoadLibrary`) exacerbate this by exposing the module directly in the process environment block (`PEB`).
@@ -69,13 +69,16 @@ flowchart TD
 
 Continuously operated in global production via Cloudflare Workers without operational degradation:
 
-- **CPU Compute Duration:** `~540 µs` average execution time per handshake.
-- **Total Request Latency:** `~800 µs` (sub-millisecond edge response).
-- **Monthly Invocations:** `8,000+` active requests across 30+ global edge locations.
-- **Uptime & Reliability:** `0.00%` operational error rate over 4+ months of continuous deployment.
+| **30-Day Reliability & Latency (0 Errors / 555 µs)** | **Global Edge Distribution (30-Day Real Traffic)** |
+| :---: | :---: |
+| ![30-Day Telemetry](docs/assets/edge-runtime-telemetry-30d.png) | ![Global Distribution](docs/assets/edge-runtime-distribution.png) |
+
+- **Zero Fault Rate:** 0 unhandled exceptions or error responses across 7,590+ invocations (0.00% error rate).
+- **Sub-Millisecond Compute:** Median CPU execution time of **555 µs** with an 866 µs total request duration.
+- **Zero Resource Saturation:** 0 memory limit violations, 0 CPU budget throttling events, and zero uncaught runtime exceptions across global edge nodes.
+- **Global Ingestion:** Real-world traffic continuously routed across edge data centers in the Americas (GRU, GIG, CWB, EWR, MIA, ATL), Europe (ARN, LIS, WAW, VIE), and Asia-Pacific (TPE).
 
 ---
-
 ## Documentation Index
 
 - **[docs/architecture-deep-dive.md](docs/architecture-deep-dive.md):** Complete whitepaper covering PE parsing math, relocation algorithms, JVM deadlock war story, trade-off matrix, and V2 memory protection roadmap.

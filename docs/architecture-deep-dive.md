@@ -8,7 +8,7 @@
 
 > [!NOTE]
 > **Production Context & Sanitization Notice:**  
-> This whitepaper documents systems architecture deployed in live production (servicing 8,000+ monthly requests across global edge infrastructure). In accordance with commercial non-disclosure agreements and anti-tamper security practices, target memory offsets, game structures, private Cloudflare routing keys, and core engine binaries are strictly omitted.
+> This whitepaper documents systems architecture deployed in live production (servicing 7,500+ to 8,000+ monthly requests across global edge infrastructure). In accordance with commercial non-disclosure agreements and anti-tamper security practices, target memory offsets, game structures, private Cloudflare routing keys, and core engine binaries are strictly omitted.
 ## 1. Executive Summary & Problem Context
 
 In competitive client-server environments, distributing user-mode performance utilities introduces severe software security risks:
@@ -248,14 +248,17 @@ Instead, the investigation leveraged a **custom in-process diagnostic harness co
 
 The distribution lifecycle uses an ultra-low-latency edge topology on Cloudflare Workers. Rather than maintaining static endpoints that can be scraped or cloned, edge nodes handle authentication, client version validation, and operational metrics collection:
 
-### Production Metrics Under Real-World Conditions
-* **Execution Time (CPU):** ~540 µs average compute duration per request.
-* **Total Request Duration:** ~800 µs (sub-millisecond edge response).
-* **Throughput:** ~8,000–10,000 requests/month (~330 daily active sessions across global regions).
-* **Reliability:** 0.00% operational error rate over 4+ months of continuous uptime.
+| **Production Observability (30-Day Window)** | **Global Request Routing Topology** |
+| :---: | :---: |
+| ![Production Telemetry](assets/edge-runtime-telemetry-30d.png) | ![Global Distribution](assets/edge-runtime-distribution.png) |
+
+### Empirical Telemetry Under Real-World Production Load
+* **Zero-Error Execution:** 0 unhandled exceptions or error statuses across 7,590+ continuous invocations (0.00% error rate).
+* **Sub-Millisecond CPU Time:** Median execution time of **555 µs** with an 866 µs total request duration.
+* **Resource Bounds:** 0 memory limit violations, 0 CPU throttling events, and 0 uncaught exceptions recorded across global edge nodes.
+* **Edge Topology:** Ingestion and routing verified across high-volume transit nodes in South America (GRU 5k, GIG 1k, CWB 152), North America (EWR 43, MIA 28, ATL 27), Europe (ARN 73, LIS 61, WAW 54, VIE 47), and Asia-Pacific (TPE 25).
 
 ---
-
 ## 8. Key Takeaways & Engineering Trade-Offs
 
 | Decision | Chosen Architecture | Alternative Rejected | Engineering Trade-Off / Justification |
