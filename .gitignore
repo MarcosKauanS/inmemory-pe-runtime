@@ -1,0 +1,10 @@
+build/
+bin/
+*.user
+*.suo
+*.VC.db
+.vs/
+out/
+x64/
+Debug/
+Release/
