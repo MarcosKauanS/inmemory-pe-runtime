@@ -8,7 +8,7 @@
 
 > [!NOTE]
 > **Production Context & Sanitization Notice:**  
-> This whitepaper documents systems architecture deployed in live production (servicing 7,500+ to 8,000+ monthly requests across global edge infrastructure). In accordance with commercial non-disclosure agreements and anti-tamper security practices, target memory offsets, game structures, private Cloudflare routing keys, and core engine binaries are strictly omitted.
+> This whitepaper documents systems architecture deployed in live production (servicing 7,500+ to 8,000+ monthly requests across global edge infrastructure). In accordance with commercial non-disclosure agreements and anti-tamper security practices, target memory offsets, proprietary process structures, private Cloudflare routing keys, and core engine binaries are strictly omitted.
 ## 1. Executive Summary & Problem Context
 
 In competitive client-server environments, distributing user-mode performance utilities introduces severe software security risks:
@@ -58,7 +58,7 @@ flowchart TD
         ENUM -->|Obtain Target Handle| MMAP[Defensive Manual Mapper]
     end
 
-    subgraph TargetVM["3. Protected Target VM (JVM / Game Process)"]
+    subgraph TargetVM["3. Protected Target VM (JVM Host Process)"]
         MMAP -->|1. VirtualAllocEx| TGT_MEM[(Remote Virtual Address Space)]
         MMAP -->|2. Write Section Headers| TGT_MEM
         MMAP -->|3. NtCreateThreadEx 0x4 Stealth| BOOT[Bootstrap Shellcode]
@@ -226,7 +226,7 @@ sequenceDiagram
 ```
 
 ### The Hidden Trap
-During initial development of the in-memory engine, the manual mapper succeeded in relocating the PE payload and invoking the entry point. However, within 15 to 45 seconds of runtime in high-load production environments, the target host game process suffered an intermittent, catastrophic freeze with zero crash log generated.
+During initial development of the in-memory engine, the manual mapper succeeded in relocating the PE payload and invoking the entry point. However, within 15 to 45 seconds of runtime in high-load production environments, the target host application process suffered an intermittent, catastrophic freeze with zero crash log generated.
 
 ### Diagnostic Forensic Investigation: In-Process Instrumentation
 Attaching a heavy external disassembler or interactive debugger was neither viable nor desirable: external debuggers halt thread execution (destroying runtime concurrency timing and masking the race condition), and the engine's active anti-tamper tripwires actively resist attached debuggers.
@@ -235,11 +235,11 @@ Instead, the investigation leveraged a **custom in-process diagnostic harness co
 * **In-Memory Telemetry Inspection:** The runtime embedded an isolated diagnostic state machine that polled internal pointer tables, thread execution contexts, and target variable offsets directly within the host address space.
 * **Isolated Asynchronous Pipe Logging:** An internal diagnostic build emitted thread scheduling states and lock counters through an asynchronous named pipe (`PipeLog`), preserving sub-millisecond execution timing without perturbing thread affinity.
 * **The Interception Race Uncovered:** The injected engine interfaced with JVM execution contexts via native JVMTI capabilities. During host level-load cycles, the host JVM held a global `ClassLoader` dictionary mutex. Concurrently, the engine attempted to resolve target input state descriptors from an asynchronous background thread spawned via `NtCreateThreadStealth`.
-* **The Root Cause:** Because the background `FindClass` / `GetFieldID` resolution triggered an implicit class-resolution attempt while the primary game render thread held the JVM class dictionary mutex, both threads entered a classic **AB-BA circular lock acquisition deadlock**.
+* **The Root Cause:** Because the background `FindClass` / `GetFieldID` resolution triggered an implicit class-resolution attempt while the primary host render thread held the JVM class dictionary mutex, both threads entered a classic **AB-BA circular lock acquisition deadlock**.
 
 ### The Architectural Resolution
 1. **Thread Synchronization Decoupling:** Replaced direct background thread querying with an asynchronous event-driven lifecycle anchored to the primary JVM render loop.
-2. **Class Cache Anchoring:** Instead of resolving field signatures dynamically on every combat frame, the engine captures and anchors the static `jclass` and `jfieldID` descriptors during the application's clean initialization tick, caching pointers into atomic memory references (`std::atomic<bool>`).
+2. **Class Cache Anchoring:** Instead of resolving field signatures dynamically on every render frame, the engine captures and anchors the static `jclass` and `jfieldID` descriptors during the application's clean initialization tick, caching pointers into atomic memory references (`std::atomic<bool>`).
 3. **Graceful Fail-Safe Unload (`ResetEngineState`):** Implemented an atomic drain routine (`g_Unloading`) that waits for all active thread cycles to flush before unhooking JVMTI callback structures, completely eliminating memory leak hazards during reinjection cycles.
 
 ---
@@ -264,9 +264,9 @@ The distribution lifecycle uses an ultra-low-latency edge topology on Cloudflare
 | Decision | Chosen Architecture | Alternative Rejected | Engineering Trade-Off / Justification |
 | :--- | :--- | :--- | :--- |
 | **Payload Delivery** | In-Memory PE Mapping | Standard `LoadLibrary` Injection | Trades implementation simplicity for complete elimination of disk artifacts and module list inspection. |
-| **UI Rendering** | Decoupled WebView2 Bridge | Direct In-Game DirectX Hooking | Avoids hooking host graphics rendering pipelines, eliminating frame-time jitter and game rendering instabilities. |
+| **UI Rendering** | Decoupled WebView2 Bridge | In-Process Graphics Hooking | Avoids hooking host graphics rendering pipelines, eliminating frame-time jitter and host rendering instabilities. |
 | **Relocation Logic** | Custom Shellcode Traverser | Native Windows OS Loader | Incurs manual maintenance of PE relocations and TLS tables, but guarantees zero external dependency overhead. |
-| **Code Protection** | MBA & Path Explosion (ASE) | Third-Party Commercial Packers | Retains microsecond latency performance while avoiding heavy heuristic packer flags from anticheats/EDRs. |
+| **Code Protection** | MBA & Path Explosion (ASE) | Third-Party Commercial Packers | Preserves sub-microsecond execution latency and thwarts automated devirtualizers without introducing the runtime performance degradation of heavy commercial protectors. |
 | **Distribution** | Serverless Edge Compute | Traditional Dedicated VPS | Replaces server maintenance and single-point-of-failure vulnerabilities with globally distributed sub-millisecond edge nodes. |
 
 ---
