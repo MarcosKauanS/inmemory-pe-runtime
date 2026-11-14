@@ -6,8 +6,11 @@
 ---
 
 > [!NOTE]
-> **Production Status & Intellectual Property Notice:**  
-> This repository is an **architectural case study and systems specification** derived from a proprietary, active production system (serving 7,500+ to 8,000+ monthly user sessions across global edge infrastructure). In accordance with commercial confidentiality agreements and anti-tamper security practices, live memory offsets, internal game mappings, private Cloudflare routing tokens, and core binaries are strictly omitted.
+> **Production Status, Reference POC & Intellectual Property Notice:**  
+> This repository contains both an **architectural systems specification** (derived from an active production engine serving 7,500+ monthly user sessions across global edge infrastructure) and a **standalone, functional C++20 reference implementation (POC)**.  
+> 
+> In strict accordance with commercial non-disclosure agreements (NDAs) and anti-tamper OpSec, the public POC demonstrates the core in-memory Win32/x64 PE mapping pipeline against a neutral test fixture (`test_payload.dll`). Live target memory offsets, proprietary process hooks, private Cloudflare edge routing tokens, and commercial anti-tamper transforms are strictly omitted.
+
 ## Executive Summary
 
 When distributing client performance software in competitive environments, on-disk libraries (`.dll`) present severe security hazards: arbitrary code injection, binary repackaging with malware, and DLL search-order hijacking. Standard OS loaders (`LoadLibrary`) exacerbate this by exposing the module directly in the process environment block (`PEB`).
@@ -19,6 +22,46 @@ This project implements a **zero-disk, in-memory execution pipeline** designed t
 
 > 📄 **Looking for the complete technical breakdown?**  
 > Read the full 10-minute engineering specification: **[Architecture Deep Dive & Systems Whitepaper](docs/architecture-deep-dive.md)**.
+
+---
+
+## Quickstart & Build (Standalone Engine POC)
+
+Prerequisites: Windows x64, CMake 3.20+, Visual Studio 2022 / Build Tools (MSVC with C++20 support).
+
+```powershell
+# 1. Configure CMake targeting x64
+cmake -B build -A x64
+
+# 2. Build the engine runtime, runner, and test fixture DLL
+cmake --build build --config Release
+
+# 3. Execute in-memory manual map verification
+.\build\Release\pe_runner.exe .\build\tests\fixtures\Release\test_payload.dll
+```
+
+### Verified Terminal Execution Output
+
+```text
+[*] Reading binary payload: .\build\tests\fixtures\Release\test_payload.dll
+[+] Ingested 9728 bytes into memory
+[*] Executing manual mapping pipeline:
+  [payload] TLS callback executed at base 0x000001F5DA730000
+    [1] PE Headers: AMD64 (x64) verified
+    [2] VirtualAlloc: 0x7000 bytes committed at 0x1f5da730000
+        -> Mapped 6 virtual sections
+    [3] Base Relocations: 20 entries patched via DIR64
+    [4] IAT Resolution: 18 imports bound
+    [5] TLS Callbacks: 1 executed
+    [6] SEH Unwinding: Registered via RtlAddFunctionTable
+    [7] EntryPoint: 0x1F5DA731418
+
+[*] Invoking module entry point (DLL_PROCESS_ATTACH)
+  [payload] Attached to host process at base 0x000001F5DA730000
+  [payload] Integrity verification token: 1515870824
+[+] Entry point executed successfully (returned TRUE)
+[+] In-memory execution completed without disk artifacts
+```
 
 ---
 
@@ -37,7 +80,7 @@ flowchart TD
         ORCH -->|Locate Target Process| MMAP[Defensive Manual Mapper]
     end
 
-    subgraph TargetVM["3. Protected Target VM (JVM / Game Process)"]
+    subgraph TargetVM["3. Protected Target VM (JVM Host Process)"]
         MMAP -->|VirtualAllocEx + Write Sections| TGT_MEM[(Remote Virtual Memory)]
         MMAP -->|NtCreateThreadEx 0x4 Stealth| BOOT[Bootstrap Shellcode]
         
