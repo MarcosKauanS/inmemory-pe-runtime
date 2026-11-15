@@ -19,7 +19,7 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Configure CMake
-        run: cmake -B build -A x64
+        run: cmake -B build -A x64 -DENABLE_ASAN=ON
 
       - name: Build
         run: cmake --build build --config Release

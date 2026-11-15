@@ -18,6 +18,19 @@ if (MSVC)
     add_compile_options(/W4 /permissive- /utf-8 /Oi)
 endif()
 
+option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+if (ENABLE_ASAN AND MSVC)
+    add_compile_options(/fsanitize=address /Zi)
+    add_link_options(/DEBUG)
+    foreach(flag_var
+        CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+        CMAKE_C_FLAGS CMAKE_C_FLAGS_DEBUG CMAKE_C_FLAGS_RELEASE)
+        if(${flag_var} MATCHES "/RTC1")
+            string(REGEX REPLACE "/RTC1" "" ${flag_var} "${${flag_var}}")
+        endif()
+    endforeach()
+endif()
+
 # Core static library implementing the manual PE loader engine
 add_library(inmemory_pe_core STATIC
     src/loader.cpp
