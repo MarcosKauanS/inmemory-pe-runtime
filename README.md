@@ -1,4 +1,5 @@
 # In-Memory PE Runtime & Integrity Protection Engine
+[![CI](https://github.com/MarcosKauanS/inmemory-pe-runtime/actions/workflows/ci.yml/badge.svg)](https://github.com/MarcosKauanS/inmemory-pe-runtime/actions/workflows/ci.yml)
 ### Defensive Anti-Tamper & Zero-Disk Execution Pipeline
 **Language:** Modern C++ (C++20) / Win32 / x86 & x64 Assembly  
 **Discipline:** Systems Software Engineering, Windows Internals, Anti-Tamper Hardening
