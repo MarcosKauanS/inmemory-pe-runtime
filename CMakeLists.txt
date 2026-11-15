@@ -44,3 +44,34 @@ target_compile_features(pe_runner PRIVATE cxx_std_20)
 
 # Sample validation DLL fixture
 add_subdirectory(tests/fixtures)
+
+# Unit & integration tests
+enable_testing()
+
+include(FetchContent)
+FetchContent_Declare(
+    googletest
+    URL https://github.com/google/googletest/archive/refs/tags/v1.15.0.zip
+)
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
+
+add_executable(pe_unit_tests
+    tests/test_loader.cpp
+)
+
+target_link_libraries(pe_unit_tests PRIVATE
+    inmemory_pe_core
+    GTest::gtest_main
+)
+
+target_compile_definitions(pe_unit_tests PRIVATE
+    TEST_PAYLOAD_PATH="$<TARGET_FILE:test_payload>"
+)
+
+target_compile_features(pe_unit_tests PRIVATE cxx_std_20)
+
+add_dependencies(pe_unit_tests test_payload)
+
+include(GoogleTest)
+gtest_discover_tests(pe_unit_tests)
